@@ -1,5 +1,7 @@
 # CNC Backup Compare
 
+[آزمون با دو بکاپ ساختگی و ثبت نتیجه](https://github.com/aminenayatollahi-source/cnc-backup-compare/issues/1) · [Try the sample and report your result](https://github.com/aminenayatollahi-source/cnc-backup-compare/issues/1)
+
 [Open the browser demo](https://aminenayatollahi-source.github.io/cnc-backup-compare/)
 
 Compare two extracted CNC backup folders before and after a service visit. The interface is in Persian. It runs in your browser and reads the folders you select locally.
