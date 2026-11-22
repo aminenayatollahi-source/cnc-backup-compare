@@ -6,9 +6,20 @@
 
 Compare two extracted CNC backup folders before and after a service visit. The interface is in Persian. It runs in your browser and reads the folders you select locally.
 
-## Try the sample
+## Try the service-visit sample
 
-Click **اجرای نمونهٔ ساختگی** (Run synthetic sample). The sample has one added file, one removed file, two changed files and one unchanged file. Click **جزئیات** (Details) next to `notes/setup.txt` to see line 2 change from `Profile: A` to `Profile: B`.
+A technician saved a second backup after a service visit. Which subprogram appeared, and which tool description changed? [Open the demo](https://aminenayatollahi-source.github.io/cnc-backup-compare/), click **اجرای نمونهٔ سرویس**, then use **جزئیات** on the changed file. Both snapshots are built in.
+
+<details>
+<summary>Check your findings and see the comparison</summary>
+
+The report shows one added file, one changed file and one identical file. The new `subprograms/SETUP_CHECK.SPF` is a comment-only training placeholder. In `docs/tool-list.txt`, line 2 changes from `T07 | roughing tool` to `T07 | finishing tool`. The tool list documents a description; it contains no tool offsets.
+
+![Service sample showing the new subprogram and line 2 of the tool list](service-comparison.jpg)
+
+</details>
+
+[Share your findings](https://github.com/aminenayatollahi-source/cnc-backup-compare/issues/1) with your browser name and the two changes you found.
 
 ## Compare your folders
 
@@ -27,6 +38,6 @@ The application is a single [HTML file](index.html) with embedded JavaScript and
 
 ## فارسی
 
-برای دیدن طرز کار، [دمو را باز کنید](https://aminenayatollahi-source.github.io/cnc-backup-compare/) و «اجرای نمونهٔ ساختگی» را بزنید. برای مقایسهٔ بکاپ‌های خودتان، دو پوشهٔ استخراج‌شده را انتخاب کنید. محتوای بکاپ‌ها روی رایانهٔ شما پردازش می‌شود.
+برای دیدن طرز کار، [دمو را باز کنید](https://aminenayatollahi-source.github.io/cnc-backup-compare/) و «اجرای نمونهٔ سرویس» را بزنید. برای مقایسهٔ بکاپ‌های خودتان، دو پوشهٔ استخراج‌شده را انتخاب کنید. محتوای بکاپ‌ها روی رایانهٔ شما پردازش می‌شود.
 
 [Report an issue](https://github.com/aminenayatollahi-source/cnc-backup-compare/issues) · [MIT License](LICENSE)
