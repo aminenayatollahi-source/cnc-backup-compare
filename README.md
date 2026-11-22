@@ -2,13 +2,13 @@
 
 [Try the sample and report your result](https://github.com/aminenayatollahi-source/cnc-backup-compare/issues/1)
 
-[Open the browser demo](https://aminenayatollahi-source.github.io/cnc-backup-compare/)
+[Open the browser demo](https://aminenayatollahi-source.github.io/cnc-backup-compare/?v=0.2.1)
 
 Compare two extracted CNC backup folders before and after a service visit. It runs in your browser and reads the folders you select locally.
 
 ## Try the service-visit sample
 
-A technician saved a second backup after a service visit. Which subprogram appeared, and which tool description changed? [Open the demo](https://aminenayatollahi-source.github.io/cnc-backup-compare/), click **Run service sample**, then use **Details** on the changed file. Both snapshots are built in.
+A technician saved a second backup after a service visit. Which subprogram appeared, and which tool description changed? [Open the demo](https://aminenayatollahi-source.github.io/cnc-backup-compare/?v=0.2.1), click **Run service sample**, then use **Details** on the changed file. Both snapshots are built in.
 
 <details>
 <summary>Check your findings and see the comparison</summary>
