@@ -1,0 +1,121 @@
+<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'; form-action 'none'; base-uri 'none'"><title>مقایسهٔ بکاپ CNC</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#eff3f4;color:#192e35;font:16px/1.75 Tahoma,sans-serif}main{max-width:960px;margin:auto;padding:32px 18px}h1{margin:0;font-size:clamp(1.6rem,5vw,2.4rem)}h2{font-size:1.18rem}section{background:white;border:1px solid #c5d3d6;border-radius:12px;padding:16px 20px;margin:15px 0}p{margin:6px 0}.folders{display:flex;gap:12px;flex-wrap:wrap}label{flex:1;min-width:180px}input{max-width:100%;display:block;margin:5px 0 15px}button{font:inherit;cursor:pointer;background:#086650;color:white;border:0;border-radius:6px;padding:5px 13px;margin:2px}button.secondary{background:#e6eff0;color:#163b41}button:focus-visible,summary:focus-visible{outline:3px solid #b77607}button:disabled{opacity:.5}table{width:100%;border-collapse:collapse}td,th{padding:6px 8px;border-bottom:1px solid #dfe7e8;text-align:start;vertical-align:top;overflow-wrap:anywhere}td.path,td.code{direction:ltr;text-align:left;font:14px/1.6 monospace;white-space:pre-wrap}td.code{width:50%}small{color:#485d64}summary{cursor:pointer}#msg{min-height:1.8em}</style>
+<main><h1>مقایسهٔ بکاپ CNC</h1><p>دو پوشهٔ استخراج‌شده را انتخاب کنید تا تغییر فایل‌ها را روی همین رایانه ببینید. می‌توانید ابتدا نمونهٔ ساختگی را امتحان کنید.</p>
+<section><div class="folders"><label>بکاپ قبلی<input id="old" type="file" webkitdirectory multiple></label><label>بکاپ جدید<input id="new" type="file" webkitdirectory multiple></label></div><button id="go" disabled>مقایسهٔ پوشه‌ها</button><button id="example" class="secondary">اجرای نمونهٔ ساختگی</button><p id="msg" role="status"></p></section>
+<section id="report" hidden><h2>خلاصهٔ مقایسه</h2><p id="counts"></p><table><thead><tr><th>فایل</th><th>وضعیت</th><th>بررسی</th></tr></thead><tbody id="list"></tbody></table></section><section id="detail" hidden><h2 id="which" dir="auto"></h2><div id="diff"></div></section>
+<details><summary>دامنهٔ بررسی</summary><p>مقایسه بر اساس مسیر نسبی فایل است. فایل‌های هم‌مسیر تا ۶۴ MiB با SHA-256 مقایسه می‌شوند. موارد خوانده‌نشده جداگانه گزارش می‌شوند. مقایسهٔ سطری برای متن UTF-8 یا UTF-16 دارای BOM، تا ۱۲۸ KiB در هر فایل و حداکثر ۷۵۰٬۰۰۰ خانهٔ مقایسه در دسترس است. برای بکاپ فشرده، ابتدا پوشه را استخراج کنید. این ابزار محتوای اختصاصی ARC یا PLC را رمزگشایی نمی‌کند.</p></details></main><script>'use strict';
+const MAX_HASH = 64 * 1024 * 1024;
+const MAX_TEXT = 128 * 1024;
+async function fingerprint(file) {
+  if (file.size > MAX_HASH) throw new Error('بزرگ‌تر از حد ۶۴ مگابایت');
+  const bytes = await file.arrayBuffer();
+  const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+  return Array.from(hash, b => b.toString(16).padStart(2,'0')).join('');
+}
+function indexFolder(files) {
+  const map = new Map();
+  for (const f of files) {
+    const path = f.webkitRelativePath;
+    if (!path || !path.includes('/')) throw Error('مسیر نسبی پوشه در مرورگر موجود نیست.');
+    const key = path.slice(path.indexOf('/') + 1);
+    if (map.has(key)) throw Error('مسیر تکراری در پوشه');
+    map.set(key, f);
+  }
+  return map;
+}
+async function compareFolders(before, after) {
+  const keys = Array.from(new Set([...before.keys(), ...after.keys()])).sort();
+  const result = [];
+  for (const path of keys) {
+    const a = before.get(path), b = after.get(path);
+    let state, note = '';
+    if (!a) state = 'added';
+    else if (!b) state = 'removed';
+    else {
+      try { state = await fingerprint(a) === await fingerprint(b) ? 'same' : 'changed'; }
+      catch (e) { state = 'unchecked'; note = e.message; }
+    }
+    result.push({path, state, note, a, b});
+  }
+  return result;
+}
+async function linesOf(file) {
+  if (file.size > MAX_TEXT) return null;
+  const b = new Uint8Array(await file.arrayBuffer());
+  const utf16 = b[0]===255 && b[1]===254 ? 'utf-16le' : b[0]===254 && b[1]===255 ? 'utf-16be' : null;
+  let text;
+  try { text = new TextDecoder(utf16 || 'utf-8', {fatal:true}).decode(b); }
+  catch { return null; }
+  if (/[\u0000-\u0008\u000e-\u001f\u007f]/.test(text)) return null;
+  return text.split(/\r\n|\n|\r/);
+}
+function changedLines(a,b) {
+  if ((a.length+1)*(b.length+1)>750000) return null;
+  const width=b.length+1, grid=new Uint32Array((a.length+1)*width);
+  for(let i=a.length-1;i>=0;i--) for(let j=b.length-1;j>=0;j--) {
+    const p=i*width+j;
+    grid[p]=a[i]===b[j]?1+grid[p+width+1]:Math.max(grid[p+width],grid[p+1]);
+  }
+  const out=[];
+  let i=0,j=0,removed=[],added=[];
+  function flush(){
+    for(let k=0;k<Math.max(removed.length,added.length);k++) out.push([removed[k]||null,added[k]||null]);
+    removed=[];added=[];
+  }
+  while(i<a.length || j<b.length) {
+    if(i<a.length && j<b.length && a[i]===b[j]) {flush();i++;j++;}
+    else if(i<a.length && (j===b.length || grid[(i+1)*width+j]>=grid[i*width+j+1])) {removed.push([i+1,a[i]]);i++;}
+    else {added.push([j+1,b[j]]);j++;}
+  }
+  flush();return out;
+}
+
+const $=id=>document.getElementById(id);
+const names={added:'اضافه‌شده',removed:'حذف‌شده',changed:'تغییرکرده',same:'یکسان',unchecked:'بررسی‌نشده'};
+let detailVersion=0, busy=false;
+function el(tag,t){const node=document.createElement(tag);node.textContent=t??'';return node;}
+function refresh(){ $('go').disabled=busy||!$('old').files.length||!$('new').files.length; }
+function clearReport(){detailVersion++;$('detail').hidden=true;$('report').hidden=true;$('msg').textContent='';refresh();}
+$('old').onchange=clearReport;$('new').onchange=clearReport;
+async function inspect(r){
+  const revision=++detailVersion;
+  $('detail').hidden=false;$('which').textContent=r.path;
+  const diff=$('diff');diff.textContent='در حال خواندن…';
+  try {
+    const [a,b]=await Promise.all([linesOf(r.a),linesOf(r.b)]);
+    if(revision!==detailVersion)return;
+    if(!a||!b){diff.textContent='هش فایل تغییر کرده است. نمایش سطری برای این قالب یا اندازه در دسترس نیست.';return;}
+    const lines=changedLines(a,b);
+    if(!lines){diff.textContent='هش فایل تغییر کرده است. تعداد سطرها از سقف نمایش بیشتر است.';return;}
+    if(!lines.length){diff.textContent='بایت‌ها تغییر کرده‌اند، اما متن سطرها یکسان است. کُدگذاری یا پایان سطر می‌تواند علت باشد.';return;}
+    const table=el('table'),head=table.createTHead().insertRow();
+    head.append(el('th','قبلی · شماره و متن سطر'),el('th','جدید · شماره و متن سطر'));
+    const body=table.createTBody();for(const pair of lines){const row=body.insertRow();for(const item of pair){const c=row.insertCell();c.className='code';c.textContent=item?item[0]+'  '+item[1]:'—';}}diff.replaceChildren(table);
+  }catch{if(revision===detailVersion)diff.textContent='خواندن فایل برای نمایش سطرها ممکن نشد.';}
+}
+async function run(getFolders,label){
+  clearReport();busy=true;for(const id of ['go','example','old','new'])$(id).disabled=true;
+  try{
+    if(!crypto.subtle)throw Error('مرورگر به SHA-256 دسترسی ندارد. فایل را در نسخهٔ جدید Edge یا Chrome باز کنید.');
+    $('msg').textContent='در حال مقایسه…';
+    const data=await compareFolders(...getFolders()), stats={added:0,removed:0,changed:0,same:0,unchecked:0};
+    const rows=document.createDocumentFragment();
+    for(const r of data){stats[r.state]++;if(r.state==='same')continue;
+      const row=el('tr'),path=row.insertCell();path.className='path';path.textContent=r.path;
+      row.insertCell().textContent=names[r.state];const action=row.insertCell();
+      if(r.state==='changed'){const btn=el('button','جزئیات');btn.className='secondary';btn.onclick=()=>inspect(r);action.append(btn);}
+      else if(r.note)action.textContent=r.note;rows.append(row);
+    }
+    $('list').replaceChildren(rows);$('counts').textContent=Object.entries(stats).map(([k,v])=>names[k]+' '+v.toLocaleString('fa-IR')).join('  ·  ');$('report').hidden=false;$('msg').textContent=label;
+  }catch(e){$('msg').textContent=e.message}
+  finally{busy=false;for(const id of ['example','old','new'])$(id).disabled=false;refresh();}
+}
+$('go').onclick=()=>run(()=>[indexFolder($('old').files),indexFolder($('new').files)],'مقایسهٔ فایل‌های انتخابی پایان یافت.');
+function sampleFolders(){
+  const before=new Map(),after=new Map();
+  function put(map,path,body){map.set(path,new File([body],path.split('/').pop()));}
+  put(before,'notes/setup.txt','Machine: DEMO\nProfile: A\n');put(after,'notes/setup.txt','Machine: DEMO\nProfile: B\n');
+  put(before,'archive/block.bin',new Uint8Array([0,4,7]));put(after,'archive/block.bin',new Uint8Array([0,4,8]));
+  put(before,'notes/old.txt','old');put(after,'notes/new.txt','new');for(const m of [before,after])put(m,'common.txt','unchanged');return [before,after];
+}
+$('example').onclick=()=>run(sampleFolders,'نتیجهٔ نمونهٔ ساختگی');</script></html>
