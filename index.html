@@ -1,13 +1,13 @@
-<!doctype html><html lang="fa" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'; form-action 'none'; base-uri 'none'"><title>مقایسهٔ بکاپ CNC</title>
+<!doctype html><html lang="en" dir="ltr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'; form-action 'none'; base-uri 'none'"><title>CNC Backup Compare</title>
 <style>*{box-sizing:border-box}body{margin:0;background:#eff3f4;color:#192e35;font:16px/1.75 Tahoma,sans-serif}main{max-width:960px;margin:auto;padding:32px 18px}h1{margin:0;font-size:clamp(1.6rem,5vw,2.4rem)}h2{font-size:1.18rem}section{background:white;border:1px solid #c5d3d6;border-radius:12px;padding:16px 20px;margin:15px 0}p{margin:6px 0}.folders{display:flex;gap:12px;flex-wrap:wrap}label{flex:1;min-width:180px}input{max-width:100%;display:block;margin:5px 0 15px}button{font:inherit;cursor:pointer;background:#086650;color:white;border:0;border-radius:6px;padding:5px 13px;margin:2px}button.secondary{background:#e6eff0;color:#163b41}button:focus-visible,summary:focus-visible{outline:3px solid #b77607}button:disabled{opacity:.5}table{width:100%;border-collapse:collapse}td,th{padding:6px 8px;border-bottom:1px solid #dfe7e8;text-align:start;vertical-align:top;overflow-wrap:anywhere}td.path,td.code{direction:ltr;text-align:left;font:14px/1.6 monospace;white-space:pre-wrap}td.code{width:50%}small{color:#485d64}summary{cursor:pointer}#msg{min-height:1.8em}</style>
-<main><h1>مقایسهٔ بکاپ CNC</h1><p>دو پوشهٔ استخراج‌شده را انتخاب کنید تا تغییر فایل‌ها را روی همین رایانه ببینید. در نمونهٔ سرویس، پیدا کنید کدام زیربرنامه اضافه شده و توضیح کدام ابزار تغییر کرده است.</p>
-<section><div class="folders"><label>بکاپ قبلی<input id="old" type="file" webkitdirectory multiple></label><label>بکاپ جدید<input id="new" type="file" webkitdirectory multiple></label></div><button id="go" disabled>مقایسهٔ پوشه‌ها</button><button id="example" class="secondary">اجرای نمونهٔ سرویس</button><p id="msg" role="status"></p><a id="feedback" hidden href="https://github.com/aminenayatollahi-source/cnc-backup-compare/issues/1">ثبت نتیجهٔ آزمون نمونه</a></section>
-<section id="report" hidden><h2>خلاصهٔ مقایسه</h2><p id="counts"></p><table><thead><tr><th>فایل</th><th>وضعیت</th><th>بررسی</th></tr></thead><tbody id="list"></tbody></table></section><section id="detail" hidden><h2 id="which" dir="auto"></h2><div id="diff"></div></section>
-<details><summary>دامنهٔ بررسی</summary><p>مقایسه بر اساس مسیر نسبی فایل است. فایل‌های هم‌مسیر تا ۶۴ MiB با SHA-256 مقایسه می‌شوند. موارد خوانده‌نشده جداگانه گزارش می‌شوند. مقایسهٔ سطری برای متن UTF-8 یا UTF-16 دارای BOM، تا ۱۲۸ KiB در هر فایل و حداکثر ۷۵۰٬۰۰۰ خانهٔ مقایسه در دسترس است. برای بکاپ فشرده، ابتدا پوشه را استخراج کنید. این ابزار محتوای اختصاصی ARC یا PLC را رمزگشایی نمی‌کند.</p></details></main><script>'use strict';
+<main><h1>CNC Backup Compare</h1><p>Compare two extracted backup folders on this computer. In the service sample, find the new subprogram and the tool description that changed.</p>
+<section><div class="folders"><label>Before service<input id="old" type="file" webkitdirectory multiple></label><label>After service<input id="new" type="file" webkitdirectory multiple></label></div><button id="go" disabled>Compare folders</button><button id="example" class="secondary">Run service sample</button><p id="msg" role="status"></p><a id="feedback" hidden href="https://github.com/aminenayatollahi-source/cnc-backup-compare/issues/1">Report your sample result</a></section>
+<section id="report" hidden><h2>Comparison summary</h2><p id="counts"></p><table><thead><tr><th>File</th><th>Status</th><th>Inspect</th></tr></thead><tbody id="list"></tbody></table></section><section id="detail" hidden><h2 id="which" dir="auto"></h2><div id="diff"></div></section>
+<details><summary>Comparison limits</summary><p>Files are matched by relative path and compared with SHA-256 up to 64 MiB per file. Unreadable or oversized files appear as unchecked. Line comparison supports UTF-8 and BOM-marked UTF-16 text up to 128 KiB per file and 750,000 comparison cells. Extract compressed backups first. Proprietary ARC and PLC formats are not decoded.</p></details></main><script>'use strict';
 const MAX_HASH = 64 * 1024 * 1024;
 const MAX_TEXT = 128 * 1024;
 async function fingerprint(file) {
-  if (file.size > MAX_HASH) throw new Error('بزرگ‌تر از حد ۶۴ مگابایت');
+  if (file.size > MAX_HASH) throw new Error('Exceeds the 64 MiB limit');
   const bytes = await file.arrayBuffer();
   const hash = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
   return Array.from(hash, b => b.toString(16).padStart(2,'0')).join('');
@@ -16,9 +16,9 @@ function indexFolder(files) {
   const map = new Map();
   for (const f of files) {
     const path = f.webkitRelativePath;
-    if (!path || !path.includes('/')) throw Error('مسیر نسبی پوشه در مرورگر موجود نیست.');
+    if (!path || !path.includes('/')) throw Error('The browser did not provide a relative folder path.');
     const key = path.slice(path.indexOf('/') + 1);
-    if (map.has(key)) throw Error('مسیر تکراری در پوشه');
+    if (map.has(key)) throw Error('Duplicate path in the selected folder.');
     map.set(key, f);
   }
   return map;
@@ -71,7 +71,7 @@ function changedLines(a,b) {
 }
 
 const $=id=>document.getElementById(id);
-const names={added:'اضافه‌شده',removed:'حذف‌شده',changed:'تغییرکرده',same:'یکسان',unchecked:'بررسی‌نشده'};
+const names={added:'Added',removed:'Removed',changed:'Changed',same:'Identical',unchecked:'Unchecked'};
 let detailVersion=0, busy=false;
 function el(tag,t){const node=document.createElement(tag);node.textContent=t??'';return node;}
 function refresh(){ $('go').disabled=busy||!$('old').files.length||!$('new').files.length; }
@@ -80,37 +80,37 @@ $('old').onchange=clearReport;$('new').onchange=clearReport;
 async function inspect(r){
   const revision=++detailVersion;
   $('detail').hidden=false;$('which').textContent=r.path;
-  const diff=$('diff');diff.textContent='در حال خواندن…';
+  const diff=$('diff');diff.textContent='Reading file…';
   try {
     const [a,b]=await Promise.all([linesOf(r.a),linesOf(r.b)]);
     if(revision!==detailVersion)return;
-    if(!a||!b){diff.textContent='هش فایل تغییر کرده است. نمایش سطری برای این قالب یا اندازه در دسترس نیست.';return;}
+    if(!a||!b){diff.textContent='The file hash changed. Line comparison is unavailable for this file format or size.';return;}
     const lines=changedLines(a,b);
-    if(!lines){diff.textContent='هش فایل تغییر کرده است. تعداد سطرها از سقف نمایش بیشتر است.';return;}
-    if(!lines.length){diff.textContent='بایت‌ها تغییر کرده‌اند، اما متن سطرها یکسان است. کُدگذاری یا پایان سطر می‌تواند علت باشد.';return;}
+    if(!lines){diff.textContent='The file hash changed. The number of lines exceeds the comparison limit.';return;}
+    if(!lines.length){diff.textContent='The file bytes differ but the text lines match. Check the encoding or line endings.';return;}
     const table=el('table'),head=table.createTHead().insertRow();
-    head.append(el('th','قبلی · شماره و متن سطر'),el('th','جدید · شماره و متن سطر'));
+    head.append(el('th','Before service · line and text'),el('th','After service · line and text'));
     const body=table.createTBody();for(const pair of lines){const row=body.insertRow();for(const item of pair){const c=row.insertCell();c.className='code';c.textContent=item?item[0]+'  '+item[1]:'—';}}diff.replaceChildren(table);
-  }catch{if(revision===detailVersion)diff.textContent='خواندن فایل برای نمایش سطرها ممکن نشد.';}
+  }catch{if(revision===detailVersion)diff.textContent='Could not read the file for line comparison.';}
 }
 async function run(getFolders,label,showFeedback=false){
   clearReport();busy=true;for(const id of ['go','example','old','new'])$(id).disabled=true;
   try{
-    if(!crypto.subtle)throw Error('مرورگر به SHA-256 دسترسی ندارد. فایل را در نسخهٔ جدید Edge یا Chrome باز کنید.');
-    $('msg').textContent='در حال مقایسه…';
+    if(!crypto.subtle)throw Error('SHA-256 is unavailable in this browser. Open the file in a recent version of Edge or Chrome.');
+    $('msg').textContent='Comparing files…';
     const data=await compareFolders(...getFolders()), stats={added:0,removed:0,changed:0,same:0,unchecked:0};
     const rows=document.createDocumentFragment();
     for(const r of data){stats[r.state]++;if(r.state==='same')continue;
       const row=el('tr'),path=row.insertCell();path.className='path';path.textContent=r.path;
       row.insertCell().textContent=names[r.state];const action=row.insertCell();
-      if(r.state==='changed'){const btn=el('button','جزئیات');btn.className='secondary';btn.onclick=()=>inspect(r);action.append(btn);}
+      if(r.state==='changed'){const btn=el('button','Details');btn.className='secondary';btn.onclick=()=>inspect(r);action.append(btn);}
       else if(r.note)action.textContent=r.note;rows.append(row);
     }
-    $('list').replaceChildren(rows);$('counts').textContent=Object.entries(stats).map(([k,v])=>names[k]+' '+v.toLocaleString('fa-IR')).join('  ·  ');$('report').hidden=false;$('msg').textContent=label;$('feedback').hidden=!showFeedback;
+    $('list').replaceChildren(rows);$('counts').textContent=Object.entries(stats).map(([k,v])=>names[k]+' '+v.toLocaleString('en-US')).join('  ·  ');$('report').hidden=false;$('msg').textContent=label;$('feedback').hidden=!showFeedback;
   }catch(e){$('msg').textContent=e.message}
   finally{busy=false;for(const id of ['example','old','new'])$(id).disabled=false;refresh();}
 }
-$('go').onclick=()=>run(()=>[indexFolder($('old').files),indexFolder($('new').files)],'مقایسهٔ فایل‌های انتخابی پایان یافت.');
+$('go').onclick=()=>run(()=>[indexFolder($('old').files),indexFolder($('new').files)],'Finished comparing the selected folders.');
 function sampleFolders() {
   // Text-only fixtures for comparing the two snapshots from a fictional service visit.
   const before = new Map();
@@ -126,4 +126,4 @@ function sampleFolders() {
   addFile(after, 'subprograms/SETUP_CHECK.SPF', '; SETUP_CHECK: training placeholder\n; Service visit documentation\n');
   return [before, after];
 }
-$('example').onclick = () => run(sampleFolders, 'نتیجهٔ مقایسهٔ دو بکاپ آموزشی، قبل و بعد از سرویس', true);</script></html>
+$('example').onclick = () => run(sampleFolders, 'Service sample complete. The report compares the backups before and after service.', true);</script></html>
